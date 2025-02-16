@@ -1,42 +1,34 @@
 package org.training.tdd.employeereport;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class Employees {
 
-    private final List<Employee> employeeList;
+public record Employees(List<Employee> employeeList) {
+
 
     public Employees(List<Employee> employeeList) {
-        this.employeeList = employeeList;
+        this.employeeList = employeeList.stream().filter(employee -> employee.age().isAdultAge())
+                                        .sorted(Comparator.reverseOrder())
+                                        .toList();
     }
 
-    public List<Employee> getEmployeesAllowedToWorkOnSunday() {
-        return employeeList.stream().filter(Employee::isOrIsOlderThan18)
-                .collect(Collectors.toList());
+    public int size() {
+        return employeeList.size();
     }
 
-    public List<Employee> getList() {
-        return employeeList;
+    public boolean areAdultEmployees() {
+        return employeeList.stream().allMatch(employee -> employee.age().isAdultAge());
     }
 
-    public List<Employee> getEmployeesSortedByTheirNameInAscendingOrder() {
-        return employeeList.stream().sorted(Comparator.comparing(Employee::name))
-                .collect(Collectors.toList());
+    public boolean haveCapitalizedNameOrCompoundName() {
+        return employeeList.stream().allMatch(employee -> employee.name().isCapitalized());
     }
 
-    public List<Employee> getEmployeesWithTheirNameCapitalized() {
-        return employeeList.stream().map(
-                        employee -> new Employee(new Name(employee.name()).capitalize(), new Age(employee.age())))
-                .collect(Collectors.toList());
-    }
+    public boolean areSortedByTheirNameInDescendingOrder() {
+        List<Name>  names = employeeList.stream().map(Employee::name).sorted(Comparator.reverseOrder()).toList();
+        return employeeList.stream().map(Employee::name).toList().equals(names);
 
-    public List<Employee> getEmployeesSortedByTheirNameInDescendingOrder() {
-        List<Employee> reversedEmployeeList = new ArrayList<>(getEmployeesSortedByTheirNameInAscendingOrder());
-        Collections.reverse(reversedEmployeeList);
-        return reversedEmployeeList;
     }
 }
