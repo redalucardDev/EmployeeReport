@@ -1,10 +1,11 @@
 package org.training.tdd.employeereport;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -15,103 +16,84 @@ class EmployeeTest {
 
 
     @Test
-    void shouldKnowAllEmployees() {
-        Employees employees = new Employees(createEmployeeList());
-        List<Employee> createdEmployeeList = createEmployeeList();
-
-        List<Employee> employeesList = employees.getList();
-
-        assertThat(employeesList).hasSize(4).containsExactlyInAnyOrder(createdEmployeeList.toArray(Employee[]::new));
-    }
-
-    @Test
-    void shouldBeAndErrorWhenNameIsEmptyOrNull() {
+    void shouldGetAnErrorWhenNameIsAbsent() {
         assertThrows(IllegalArgumentException.class, () -> new Employee(new Name(null), new Age(18)));
         assertThrows(IllegalArgumentException.class, () -> new Employee(new Name(""), new Age(18)));
     }
 
     @Test
-    void shouldGetAnErrorWhenIs0OrNegative() {
+    void shouldGetAnErrorWhenAgeIs0OrNegative() {
         assertThrows(IllegalArgumentException.class, () -> new Employee(new Name("Sepp"), new Age(0)));
         assertThrows(IllegalArgumentException.class, () -> new Employee(new Name("Sepp"), new Age(-1)));
     }
 
-    @Test
-    void shouldKnowEmployeesAllowedToWorkOnSunday() {
-        Employees employees = new Employees(createEmployeeList());
-
-        List<Employee> employeesAllowedToWorkOnSunday = employees.getEmployeesAllowedToWorkOnSunday();
-
-
-        assertThat(employeesAllowedToWorkOnSunday)
-                .hasSize(2)
-                .allSatisfy(employee -> Assertions.assertThat(employee.age()).isGreaterThanOrEqualTo(18));
-
-    }
-
-    @Test
-    void shouldGetEmployeesSortedByTheirName() {
-        Employees employees = new Employees(createEmployeeList());
-
-        List<Employee> employeesAllowedToWorkOnSundayList = employees.getEmployeesSortedByTheirNameInAscendingOrder();
-
-        assertThat(employeesAllowedToWorkOnSundayList)
-                .hasSize(4)
-                .extracting(Employee::name)
-                .isSortedAccordingTo(Comparator.naturalOrder());
-
-    }
 
     @ParameterizedTest
-    @CsvSource(
-            value = {
-                    "anne, Anne",
-                    "anne sophie, Anne Sophie",
-                    "anne sophie margorie, Anne Sophie Margorie",
-                    "jean-baptiste, Jean-Baptiste",
-                    "mar anne-francoise, Mar Anne-Francoise",
-                    "l'herbier jean, L'Herbier Jean",
-                    "Jean. Michel Maxim,  Jean. Michel Maxim"
-            }
-    )
-    void shouldGetACapitalizedName(String input, String expected) {
-        Name name = new Name(input);
+    @CsvSource(value = {"'sepp,18;Max,17;Nina,15;mike. michel,51'",
+            "'sepp,17;Max,17;Nina,17;mike. michel,17'"
+    })
+    void shouldGetOnlyAdultEmployees(String input) {
+        Employees employees = new Employees(createEmployeeListFrom(input));
 
-        Name capitalizedName = name.capitalize();
+        assertThat(employees).matches(EmployeeTest::areAdultEmployees);
+    }
 
-        assertThat(capitalizedName.value()).isEqualTo(expected);
 
+    @ParameterizedTest
+    @CsvSource(value = {"'l''herbier jean,19;mike. michel,51;sepp,18'",
+    })
+    void shouldGetEmployeesWithNameOrCompoundNameCapitalized(String input) {
+        Employees employees = new Employees(createEmployeeListFrom(input));
+
+        assertThat(employees).matches(EmployeeTest::haveCapitalizedNameOrCompoundName);
 
     }
 
-    @Test
-    void shouldGetEmployeesWithTheirNameCapitalized() {
-        List<Employee> employees = new Employees(createEmployeeList()).getEmployeesWithTheirNameCapitalized();
-
-        Assertions.assertThat(employees).contains(new Employee(new Name("Mike. Michel"), new Age(51)));
-
-    }
 
     @Test
     void shouldGetEmployeesSortedByTheirNameInDescendingOrder() {
         Employees employees = new Employees(createEmployeeList());
+        assertThat(employees).matches(EmployeeTest::areSortedByTheirNameInDescendingOrder);
 
-        List<Employee> employeesAllowedToWorkOnSundayList = employees.getEmployeesSortedByTheirNameInDescendingOrder();
+    }
 
-        assertThat(employeesAllowedToWorkOnSundayList)
-                .hasSize(4)
-                .extracting(Employee::name)
-                .isSortedAccordingTo(Comparator.reverseOrder());
 
+    private List<Employee> createEmployeeListFrom(String csv) {
+        if (csv.isEmpty()) {
+            return new ArrayList<>();
+        }
+        String[] employeeStrings = csv.split(";");
+        return Arrays.stream(employeeStrings)
+                .map(employee -> {
+                    String[] parts = employee.split(",");
+                    Name name = new Name(parts[0]);
+                    Age age = new Age(Integer.parseInt(parts[1]));
+                    return new Employee(name, age);
+                })
+                .toList();
     }
 
     private List<Employee> createEmployeeList() {
-        return List.of(
-                new Employee(new Name("sepp"), new Age(18)),
-                new Employee(new Name("Max"), new Age(17)),
-                new Employee(new Name("Nina"), new Age(15)),
-                new Employee(new Name("mike. michel"), new Age(51))
-        );
+        return List.of(new Employee(new Name("Max"), new Age(19))
+                , new Employee(new Name("Nina"), new Age(15))
+                , new Employee(new Name("mike. michel"), new Age(51))
+                , new Employee(new Name("sepp"), new Age(18)));
     }
+
+
+    public static boolean areAdultEmployees(Employees employees) {
+        return employees.get().stream().allMatch(employee -> employee.age().isAdultAge());
+    }
+
+    public static  boolean haveCapitalizedNameOrCompoundName(Employees employees) {
+        return employees.get().stream().allMatch(employee -> employee.name().isCapitalized());
+    }
+
+    public static boolean areSortedByTheirNameInDescendingOrder(Employees employees) {
+        List<Name>  names = employees.get().stream().map(Employee::name).sorted(Comparator.reverseOrder()).toList();
+        return employees.get().stream().map(Employee::name).toList().equals(names);
+
+    }
+
 
 }

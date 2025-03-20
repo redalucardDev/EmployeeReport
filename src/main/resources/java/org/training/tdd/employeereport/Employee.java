@@ -2,27 +2,7 @@ package org.training.tdd.employeereport;
 
 import java.util.Objects;
 
-public class Employee {
-
-    private Age age;
-    private Name name;
-
-    public Employee(Name name, Age age) {
-        this.name = name;
-        this.age = age;
-    }
-
-    public int age() {
-        return age.value();
-    }
-
-    public String name() {
-        return name.value();
-    }
-
-    public boolean isOrIsOlderThan18() {
-        return (age.value() >= 18);
-    }
+public record Employee(Name name,Age age) implements Comparable<Employee> {
 
     @Override
     public boolean equals(Object otherEmployee) {
@@ -33,4 +13,9 @@ public class Employee {
     }
 
 
+    @Override
+    public int compareTo(Employee otherEmployee) {
+        return this.name.compareTo(otherEmployee.name);
+
+    }
 }
